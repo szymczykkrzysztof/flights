@@ -73,4 +73,8 @@ public class Booking {
     public static Booking newBooking(Flight flight, Passenger passenger, String seat, BigDecimal price, String currency) {
         return new Booking(flight, passenger, seat, price, currency, LocalDateTime.now());
     }
+
+    public void changeSeat(String newSeat) {
+        this.seat = newSeat;
+    }
 }

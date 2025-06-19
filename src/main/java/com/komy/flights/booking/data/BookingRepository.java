@@ -14,5 +14,12 @@ public interface BookingRepository extends CrudRepository<Booking, UUID> {
             ORDER BY b.flight.departure
             """)
     Collection<Booking> findBookingsByPassengerEmail(@Param("email") String email);
-
+    @Query ("""
+                SELECT (COUNT(b)>0) FROM Booking b
+                WHERE b.flight.id =:flight
+                AND b.seat=:seat
+            """)
+    boolean existsBookingByFlightIdAndSeat(
+            @Param("flight") UUID flightId,
+            @Param("seat") String seat);
 }
