@@ -12,13 +12,17 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class FlightDiscoveryService {
     private final FlightRepository flightRepository;
+    private final TicketPriceCalculator ticketPriceCalculator;
 
-    public FlightDiscoveryService(FlightRepository flightRepository) {
+
+    public FlightDiscoveryService(FlightRepository flightRepository, TicketPriceCalculator ticketPriceCalculator) {
         this.flightRepository = flightRepository;
+        this.ticketPriceCalculator = ticketPriceCalculator;
     }
 
-    public List<Flight> search(FlightDiscoveryQuery request) {
-        return switch (request) {
+    public List<TicketPriceAwareFlight> search(FlightDiscoveryQuery request) {
+
+        var matchedFights = switch (request) {
             case FlightDiscoveryQuery.ForOriginAndDestinationAndDepartureDate rq ->
                     flightRepository.findFlights(rq.origin(), rq.destination(), rq.departure());
             case FlightDiscoveryQuery.ForOriginAndDepartureDate rq ->
@@ -26,6 +30,9 @@ public class FlightDiscoveryService {
             case FlightDiscoveryQuery.ForOriginAndDestination rq ->
                     flightRepository.findFlights(rq.origin(), rq.destination());
         };
+        return matchedFights.stream()
+                .map(flight -> new TicketPriceAwareFlight(flight,ticketPriceCalculator.calculate(flight)))
+                .toList();
     }
 
     public Optional<Flight> getByFlightNumber(String flightNumber) {

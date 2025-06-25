@@ -58,4 +58,12 @@ public class Flight {
     public LocalDateTime getArrival() {
         return arrival;
     }
+
+    public boolean doesNotHaveNumber() {
+        return number == null;
+    }
+
+    public void assignNumber(String number) {
+        this.number = number;
+    }
 }

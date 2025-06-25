@@ -9,12 +9,18 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class FlightManagementService {
     private final FlightRepository flightRepository;
+    private final FlightNumberGenerator flightNumberGenerator;
 
-    public FlightManagementService(FlightRepository flightRepository) {
+    public FlightManagementService(FlightRepository flightRepository, FlightNumberGenerator flightNumberGenerator) {
         this.flightRepository = flightRepository;
+        this.flightNumberGenerator = flightNumberGenerator;
     }
 
     public Flight save(Flight flight) {
+        if (flight.doesNotHaveNumber()) {
+            var flightNumber = flightNumberGenerator.generate();
+            flight.assignNumber(flightNumber);
+        }
         return flightRepository.save(flight);
     }
 }
