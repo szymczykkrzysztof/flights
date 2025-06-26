@@ -3,6 +3,10 @@ package com.komy.flights.flight.web;
 import com.komy.flights.flight.business.discovery.FlightDiscoveryService;
 import com.komy.flights.flight.business.management.FlightManagementService;
 import com.komy.flights.flight.mapping.FlightMapping;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.Size;
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -11,10 +15,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.joining;
 
 @RestController
 @RequestMapping("/flights")
@@ -38,7 +45,7 @@ class FlightController {
 
     @PostMapping("/management")
     @ResponseStatus(HttpStatus.CREATED)
-    FlightDetails createFlight(@RequestBody FlightCreationRequest request) {
+    FlightDetails createFlight(@Valid @RequestBody FlightCreationRequest request) {
         var flight = apiMapping.map(request);
         var savedFlight = managementService.save(flight);
         return modelMapping.map(savedFlight);
@@ -47,9 +54,9 @@ class FlightController {
     @GetMapping("/discovery")
     @ResponseStatus(HttpStatus.OK)
     List<FlightDetails> discoverFlights(
-            @RequestParam("origin") String origin,
-            @RequestParam(value = "destination", required = false) String destination,
-            @RequestParam(value = "departure", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd")
+            @RequestParam("origin") @Size(min = 3, max = 3) String origin,
+            @RequestParam(value = "destination", required = false) @Size(min = 3, max = 3)String destination,
+            @RequestParam(value = "departure", required = false) @Future @DateTimeFormat(pattern = "yyyy-MM-dd")
             Date departure) {
         var query = apiMapping.map(origin, destination, departure);
         return discoveryService.search(query)
@@ -70,19 +77,19 @@ class FlightController {
                 .body(mergedErrors);
     }
 
-//    @ExceptionHandler(HandlerMethodValidationException.class)
-//    ResponseEntity<List<String>> handleValidationErrors(HandlerMethodValidationException e) {
-//        var errors = e.getAllValidationResults().stream()
-//                .map(error -> "[%s] %s".formatted(
-//                        error.getMethodParameter().getParameterName(),
-//                        error.getResolvableErrors()
-//                                .stream()
-//                                .map(MessageSourceResolvable::getDefaultMessage)
-//                                .collect(joining(", "))))
-//                .toList();
-//        return ResponseEntity.badRequest()
-//                .body(errors);
-//    }
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    ResponseEntity<List<String>> handleValidationErrors(HandlerMethodValidationException e) {
+        var errors = e.getParameterValidationResults().stream()
+                .map(error -> "[%s] %s".formatted(
+                        error.getMethodParameter().getParameterName(),
+                        error.getResolvableErrors()
+                                .stream()
+                                .map(MessageSourceResolvable::getDefaultMessage)
+                                .collect(joining(", "))))
+                .toList();
+        return ResponseEntity.badRequest()
+                .body(errors);
+    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException e) {
